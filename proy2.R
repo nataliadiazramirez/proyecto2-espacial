@@ -2,7 +2,7 @@ library(spatstat)
 
 # Cargamos los datos
 
-database <- read.csv("C:/Users/hp 15-ak006la/Dropbox/UCR/Estadistica Espacial II 2018/Proyecto 2/database.csv")
+database <- read.csv("database.csv")
 
 # Especificamos la region
 
@@ -35,7 +35,7 @@ plot(rip.l)
 # Simulación de Poissones
 
 set.seed(1) # Establecemos una semilla para reproducibilidad
-env <- envelope(spec, fun = Lest, nsim = 99)
+env <- envelope(spec, fun = Lest, nsim = 999)
 plot(env)
 
 # Cantidad de puntos cercanos según aumenta el radio
