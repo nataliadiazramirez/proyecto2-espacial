@@ -1,0 +1,169 @@
+---
+title: "Proyecto 2 - Volcanes del mundo"
+author: "Andres Arguedas Leiva - Natalia Díaz Ramírez"
+date: "11 Octubre 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,warning = FALSE,error = FALSE)
+library(spatstat)
+library(dplyr)
+```
+
+
+
+**Descripción de los datos**
+
+Los datos se obtuvieron de Global Volcanism Program (GVP) del Instituto Smithsoniano,los cuales hacen referencia a ubicaciones de los volcanes de la Tierra y su historia eruptiva en los últimos 10,000 años. El GVP informa sobre las erupciones actuales de todo el mundo y mantiene un repositorio de bases de datos sobre volcanes activos y sus erupciones. 
+
+La base de datos incluye los nombres, ubicaciones, tipos y características de 1,508 volcanes con erupciones durante los últimos 10,000 años o que muestran actividad actualmente. Entre las variables a conciderar se tomaron la latitud, longitud y elevación (metros).
+
+
+El objetivo del presente escrito consiste en determinar si existen agrupaciones y examinar la asociación con la elevación en la ubicación de los volcanes del mundo. Para lo cual se pretende contestar las siguientes preguntas:
+
+- Los eventos estan distribuidos aleatoriamente o existe evidencia de agrupaciones en la región de estudio?
+
+- Hay asociación con la elevación?
+
+
+
+**Metodología**
+
+Se desarrolló un analisis de procesos puntuales, ya que la ubicaciòn de cada volcan representa las coordenadas del evento...
+
+
+
+**Resultados**
+
+
+```{r}
+# Cargamos los datos
+database <- read.csv("database.csv")
+database2=database %>% filter(Country=="Japan"|Country=="Japan - administered by Russia")
+
+# Especificamos la region
+# database <- database[database$Region == "MÃƒÂ©xico and Central America", ]
+
+# Definimos la ventana
+wndw <- owin(x = c(min(database2$Longitude),max(database2$Longitude)),
+             y = c(min(database2$Latitude), max(database2$Latitude)))
+
+# Hacemos el objeto ppp
+
+spec <- ppp(x = database2$Longitude, database2$Latitude, window = wndw)
+```
+
+
+Basandose en el gráfico de patrones espaciales en el área bajo estudio se puede observar que hay concentraciones en ciertas áreas. Así mismo,en el gráfico de densidad se sugiere la existencia de conglomerados de los volcanes del mundo que han hecho erupciones durante los últimos 10000  años o que presentan actividad actualmente.
+
+```{r}
+plot(spec,main = "Patrones espaciales")
+```
+
+
+ 
+```{r}
+plot(density(spec),main="Gráfico de densidad")
+```
+
+Para evaluar las propiedades de segundo orden se tomó en cuenta la función k.
+
+
+```{r}
+rip.k <- Kest(spec)
+plot(rip.k,main = "Función k")
+grid()
+```
+
+
+Seguidamente se usa la función L, como correcion de la función k.
+
+```{r}
+rip.l <- Lest(spec)
+plot(rip.l,main = "Función L")
+grid()
+
+```
+
+
+Al comparar la función teórica con la empírica se puede observar que la distribución espacial de los volcanes no se distribuye aleatoriamente.
+
+```{r}
+# Simulacion de Poissones
+
+set.seed(1) # Establecemos una semilla para reproducibilidad
+env <- envelope(spec, fun = Lest, nsim = 999)
+plot(env,main = "Monte Carlo envelopes con función L")
+grid()
+```
+
+Seguidamente se evalua el comportamiento de la agrupación de los volcanes respecto a la distancia. Se evidencia que a distancias cortas hay mayor agrupación y como el crecimiento es rápido se puede suponer que hay agrupaciones.
+
+```{r}
+# Cantidad de puntos cercanos segun aumenta el radio
+
+l.iso <- rip.l$iso
+l.theo <- rip.l$theo
+l.dev <- l.iso - l.theo
+plot(l.dev ~ rip.l$r, type = "l",
+     ylab = "Desviacion distribución teorica",
+     xlab = "Distancia",
+     main="Cercanía de puntos según distancia")
+grid()
+
+```
+
+Se desea modelar la intensidad utilizando la elevación como covariable.
+
+Se utiliza un proceso de poisson no homogeneo (IPP) con una estimación no paramétrica usando kernels.
+
+```{r}
+# Modelo con solo x y y
+
+fit1 <- ppm(spec, ~ x + y)
+plot(fit1, how = "image", se = FALSE, pause = FALSE)
+persp(predict(fit1), theta = 270)
+vcov(fit1)
+```
+
+```{r}
+
+# Modelo con un polinomio de grado 2 con x y y
+
+fit2 <- ppm(spec, ~ polynom(x, y, 2))
+plot(fit2, how = "image", se = FALSE, pause = FALSE)
+persp(predict(fit2), theta = 180)
+vcov(fit2)
+```
+
+```{r}
+# Modelo con covariable
+
+
+```
+
+
+Anova  para coparar los modelos: El modelo con una intensidad que es log-cuadratico es el mejor al compararlo con el modelo que solo contiene el intercepto.
+```{r}
+fitnull=update(fit2,~1)
+anova(fitnull,fit2,test="Chi")
+```
+
+
+
+**conclusiones**
+
+Se probó que los volcanes con erupciones durante los últimos 10,000 años o que muestran actividad actualmente no presentan una distribución espacial aleatoria y se observa una tendencia de agrupaciones de dichos puntos.
+
+
+
+
+**Referencias**
+
+[](https://www.kaggle.com/smithsonian/volcanic-eruptions)
+
+
+
+
+
