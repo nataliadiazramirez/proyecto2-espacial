@@ -1,6 +1,6 @@
 ---
-title: "Proyecto 2 - Ubicaciones de Volcanes del mundo"
-author: "Andres Arguedas Leiva - Natalia DÌaz RamÌrez"
+title: "Proyecto 2 - Ubicaciones de Volcanes en Jap√≥n"
+author: "Andr√©s Arguedas Leiva - Natalia D√≠az Ram√≠rez"
 date: "11 Octubre 2018"
 output: html_document
 ---
@@ -9,25 +9,28 @@ output: html_document
 knitr::opts_chunk$set(echo = FALSE,warning = FALSE,error = FALSE)
 library(spatstat)
 library(dplyr)
+library(sp)
+library(raster)
 ```
 
+# Introducci√≥n
 
+El objetivo del presente trabajo consiste en determinar si existen agrupaciones de volcanes en Jap√≥n.
+Con base en el objetivo mencionado anteriormente, se pretende contestar las siguientes preguntas:
 
-Los datos se obtuvieron de Global Volcanism Program (GVP) del Instituto Smithsoniano,los cuales hacen referencia a ubicaciones de los volcanes en JapÛn. El GVP informa sobre las erupciones actuales de todo el mundo y mantiene un repositorio de bases de datos sobre volcanes activos y sus erupciones. 
+- ¬øLos volcanes estan distribuidos aleatoriamente o existe evidencia de agrupaciones en la regi√≥n de estudio?
 
-Los datos para el an·lisis incluye las ubicaciones de 128 volcanes de JapÛn con erupciones durante los ˙ltimos 10,000 aÒos o que muestran actividad actualmente, tomando en cuenta la latitud y longitud.
+- ¬øExiste alg√∫n modelo para predecir la intensidad de volcanes en ciertas √°reas de la regi√≥n de estudio?
 
+# Metodolog√≠a
 
-El objetivo del presente escrito consiste en determinar si existen agrupaciones de los volcanes en JapÛn, para lo cual se pretende contestar las siguientes preguntas:
+Los datos utilizados en este trabajo se obtuvieron del Global Volcanism Program (GVP) del Instituto Smithsoniano, los cuales hacen referencia a ubicaciones de volcanes que han estado activos en los √∫ltimos 10.000 a√±os a nivel mundial. El GVP informa sobre las erupciones actuales de todo el mundo y mantiene un repositorio de bases de datos sobre volcanes activos y sus erupciones, adem√°s de ciertas variables de inter√©s como su ubicaci√≥n, a√±o de la √∫ltima erupci√≥n, tipo de volc√°n, comportamiento s√≠smico, entre otros. Para efectos de este trabajo, solamente se usaron las variables de la latitud y longitud en la cual est√° ubicado el volc√°n (para poder hacer una identificaci√≥n del punto en el espacio). Adem√°s, se usaron los datos de la p√°gina GADM para obtener un mapa administrativo de Jap√≥n, para poder hacer gr√°ficos sobre este. 
 
-- Los eventos estan distribuidos aleatoriamente o existe evidencia de agrupaciones en la regiÛn de estudio?
+En t√©rminos del an√°lisis, de la lista de todos los volcanes, se escogieron solamente aquellos que estuvieran en territorio de Jap√≥n, con el fin de hacer un an√°lisis con resultados y conclusiones m√°s precisas al tratarse de un √°rea m√°s reducida. Adicionalmente, por la historia geol√≥gica de Jap√≥n, en este pa√≠s hay una gran cantidad de volcanes, por lo que, en t√©rminos de datos, se usaron los 128 volcanes de la serie de datos original que estuvieran cercanos al territorio japon√©s. Los datos se analizaron mediante m√©todos y modelos de procesos puntuales ya que, al tratarse de eventos geogr√°ficos en un solo punto, se pueden considerar como puntos en el espacio, adem√°s que se tiene la ubicaci√≥n del volc√°n en latitud-longitud. Los datos fueron procesados mediante el software R, en la interfaz gr√°fica RStudio y se usaron las bibliotecas `spatstat`, para hacer los modelos de procesos puntuales, `dplyr`, para manipulaci√≥n de datos y `sp`, para poder hacer algunos gr√°ficos.
 
-- Existe alg˙n modelo para predecir la intensidad?
+# Resultados
 
-
-
-Se desarrollÛ un analisis de procesos puntuales, ya que la ubicaciÛn de cada volcan representa las coordenadas del evento. Seguidamente se muestran los principales resultados:
-
+En este secci√≥n se presenta, primeramente, un an√°lisis descriptivo de los datos mediante mapas con las ubicaciones de los volcanes y gr√°ficos de intensidad. Posteriormente, se hace un an√°lisis sobre la posible existencia de aglomeraciones de datos mediante las funciones L y K, usando varios ajustes por borde y simulaciones. Por √∫ltimo, se estiman dos modelos de procesos puntuales para intentar explicar la ubicaci√≥n de los volcanes, haciendo pron√≥sticos con base en estos y seleccionando al mejor.
 
 ```{r}
 # Cargamos los datos
@@ -44,53 +47,64 @@ wndw <- owin(x = c(min(database2$Longitude),max(database2$Longitude)),
 # Hacemos el objeto ppp
 
 spec <- ppp(x = database2$Longitude, database2$Latitude, window = wndw)
+
+# Cargamos el raster de elevacion y el shape file de Japon
+elev <- raster(paste(getwd(), "/JPN_alt/JPN_alt.grd", sep = ""))
+shp <- shapefile(paste(getwd(), "/JPN_adm/JPN_adm0.shp", sep = ""))
+
+# Convertimos los puntos en un objeto 'sp' para poder graficarlos
+lonlat <- cbind(database2$Longitude, database2$Latitude)
+pts <- SpatialPoints(lonlat)
+
+crdef <- CRS('+proj=longlat +datum=WGS84')
+
+pts <- SpatialPoints(lonlat, proj4string = crdef)
 ```
 
-
-Basandose en el gr·fico de patrones espaciales en el ·rea bajo estudio se puede observar que hay concentraciones en ciertas ·reas. AsÌ mismo,en el gr·fico de densidad se sugiere la existencia de conglomerados de los volcanes de JapÛn que han hecho erupciones durante los ˙ltimos 10000  aÒos o que presentan actividad actualmente.
+Basandose en el gr?fico de patrones espaciales en el ?rea bajo estudio se puede observar que hay concentraciones en ciertas ?reas. As? mismo,en el gr?fico de densidad se sugiere la existencia de conglomerados de los volcanes de Jap?n que han hecho erupciones durante los ?ltimos 10000  a?os o que presentan actividad actualmente.
 
 ```{r}
-plot(spec,main = "Patrones espaciales")
+plot(shp, main = "Grafico 1:\nUbicaci√≥n de volcanes en Jap√≥n")
+points(pts, col = 2, pch = 16, cex = 0.5)
 ```
 
-
- 
 ```{r}
-plot(density(spec),main="Gr·fico de densidad")
+plot(density(spec),main="Gr?fico de densidad")
+plot(shp, add = TRUE)
 ```
 
-Para evaluar las propiedades de segundo orden se tomÛ en cuenta la funciÛn k.
+Para evaluar las propiedades de segundo orden se tom? en cuenta la funci?n k.
 
 
 ```{r}
 rip.k <- Kest(spec)
-plot(rip.k,main = "FunciÛn k")
+plot(rip.k,main = "Funci?n k")
 grid()
 ```
 
 
-Seguidamente se usa la funciÛn L, como correcion de la funciÛn k.
+Seguidamente se usa la funci?n L, como correcion de la funci?n k.
 
 ```{r}
 rip.l <- Lest(spec)
-plot(rip.l,main = "FunciÛn L")
+plot(rip.l,main = "Funci?n L")
 grid()
 
 ```
 
 
-Al comparar la funciÛn teÛrica con la empÌrica se puede observar que la distribuciÛn espacial de los volcanes no se distribuye aleatoriamente.
+Al comparar la funci?n te?rica con la emp?rica se puede observar que la distribuci?n espacial de los volcanes no se distribuye aleatoriamente.
 
 ```{r}
 # Simulacion de Poissones
 
 set.seed(1) # Establecemos una semilla para reproducibilidad
 env <- envelope(spec, fun = Lest, nsim = 999)
-plot(env,main = "Monte Carlo envelopes con funciÛn L")
+plot(env,main = "Monte Carlo envelopes con funci?n L")
 grid()
 ```
 
-Al evaluar el comportamiento de la agrupaciÛn de los volcanes respecto a la distancia. Se evidencia que a distancias cortas hay mayor agrupaciÛn y como el crecimiento es r·pido se puede suponer que hay agrupaciones.
+Al evaluar el comportamiento de la agrupaci?n de los volcanes respecto a la distancia. Se evidencia que a distancias cortas hay mayor agrupaci?n y como el crecimiento es r?pido se puede suponer que hay agrupaciones.
 
 ```{r}
 # Cantidad de puntos cercanos segun aumenta el radio
@@ -99,14 +113,14 @@ l.iso <- rip.l$iso
 l.theo <- rip.l$theo
 l.dev <- l.iso - l.theo
 plot(l.dev ~ rip.l$r, type = "l",
-     ylab = "Desviacion distribuciÛn teorica",
+     ylab = "Desviacion distribuci?n teorica",
      xlab = "Distancia",
-     main="CercanÌa de puntos seg˙n distancia")
+     main="Cercan?a de puntos seg?n distancia")
 grid()
 
 ```
 
-Se desea modelar la intensidad para lo cual se utilizÛ un proceso de poisson no homogeneo (IPP) con una estimaciÛn no paramÈtrica usando kernels.
+Se desea modelar la intensidad para lo cual se utiliz? un proceso de poisson no homogeneo (IPP) con una estimaci?n no param?trica usando kernels.
 
 Ajustando el modelo de Poisson con intesidad log-lineal en las coordenadas cartesianas se obtuvo que no predice tan bien la intensidad.
 
@@ -121,12 +135,13 @@ lamda((x,y))=exp(-12.15 + 0.062 x + 0.059 y )
 fit1 <- ppm(spec, ~ x + y)
 fit1
 plot(fit1, how = "image", se = FALSE, pause = FALSE)
+plot(p, add = T)
 persp(predict(fit1), theta = 270)
 
 ```
 
 
-Ahora, ajustando el modelo con una intensidad que es log-cuadratico en las coordenadas cartesianas se obtiene que la predicciÛn de la intensidad mejora.
+Ahora, ajustando el modelo con una intensidad que es log-cuadratico en las coordenadas cartesianas se obtiene que la predicci?n de la intensidad mejora.
 
 **Modelo:**
 
@@ -140,6 +155,7 @@ lamda((x,y))=exp(-369.09 + 6.21x - 3.63y - 0.026 x^2 + 0.032 xy - 0.01 y^2)
 fit2 <- ppm(spec, ~ polynom(x, y, 2))
 fit2
 plot(fit2, how = "image", se = FALSE, pause = FALSE)
+plot(p, add = T)
 persp(predict(fit2), theta = 180)
 ```
 
@@ -154,7 +170,7 @@ as.data.frame(vcov(fit2))
 
 **Comparar Modelos**
 
-Al comparar el modelo log-cuadr·tico contra el modelo solo contiene el intercepto se obtuvo que el modelo con una intensidad que es log-cuadratico es el mejor.
+Al comparar el modelo log-cuadr?tico contra el modelo solo contiene el intercepto se obtuvo que el modelo con una intensidad que es log-cuadratico es el mejor.
 
 ```{r}
 fitnull=update(fit2,~1)
@@ -165,9 +181,9 @@ anova(fitnull,fit2,test="Chi")
 
 **conclusiones**
 
-Se probÛ que los volcanes con erupciones durante los ˙ltimos 10,000 aÒos o que muestran actividad actualmente en JapÛn no presentan una distribuciÛn espacial aleatoria y se observa una tendencia de agrupaciones de dichos puntos. 
+Se prob? que los volcanes con erupciones durante los ?ltimos 10,000 a?os o que muestran actividad actualmente en Jap?n no presentan una distribuci?n espacial aleatoria y se observa una tendencia de agrupaciones de dichos puntos. 
 
-Adem·s, se modelÛ la intensidad con un modelo log-cuadratico. 
+Adem?s, se model? la intensidad con un modelo log-cuadratico. 
 
 
 
