@@ -1,5 +1,5 @@
 ---
-title: "Proyecto 2 - Volcanes del mundo"
+title: "Proyecto 2 - Ubicaciones de Volcanes del mundo"
 author: "Andres Arguedas Leiva - Natalia Díaz Ramírez"
 date: "11 Octubre 2018"
 output: html_document
@@ -13,28 +13,20 @@ library(dplyr)
 
 
 
-**Descripción de los datos**
+Los datos se obtuvieron de Global Volcanism Program (GVP) del Instituto Smithsoniano,los cuales hacen referencia a ubicaciones de los volcanes en Japón. El GVP informa sobre las erupciones actuales de todo el mundo y mantiene un repositorio de bases de datos sobre volcanes activos y sus erupciones. 
 
-Los datos se obtuvieron de Global Volcanism Program (GVP) del Instituto Smithsoniano,los cuales hacen referencia a ubicaciones de los volcanes de la Tierra y su historia eruptiva en los últimos 10,000 años. El GVP informa sobre las erupciones actuales de todo el mundo y mantiene un repositorio de bases de datos sobre volcanes activos y sus erupciones. 
-
-La base de datos incluye los nombres, ubicaciones, tipos y características de 1,508 volcanes con erupciones durante los últimos 10,000 años o que muestran actividad actualmente. Entre las variables a conciderar se tomaron la latitud, longitud y elevación (metros).
+Los datos para el análisis incluye las ubicaciones de 128 volcanes de Japón con erupciones durante los últimos 10,000 años o que muestran actividad actualmente, tomando en cuenta la latitud y longitud.
 
 
-El objetivo del presente escrito consiste en determinar si existen agrupaciones y examinar la asociación con la elevación en la ubicación de los volcanes del mundo. Para lo cual se pretende contestar las siguientes preguntas:
+El objetivo del presente escrito consiste en determinar si existen agrupaciones de los volcanes en Japón, para lo cual se pretende contestar las siguientes preguntas:
 
 - Los eventos estan distribuidos aleatoriamente o existe evidencia de agrupaciones en la región de estudio?
 
-- Hay asociación con la elevación?
+- Existe algún modelo para predecir la intensidad?
 
 
 
-**Metodología**
-
-Se desarrolló un analisis de procesos puntuales, ya que la ubicaciòn de cada volcan representa las coordenadas del evento...
-
-
-
-**Resultados**
+Se desarrolló un analisis de procesos puntuales, ya que la ubicación de cada volcan representa las coordenadas del evento. Seguidamente se muestran los principales resultados:
 
 
 ```{r}
@@ -55,7 +47,7 @@ spec <- ppp(x = database2$Longitude, database2$Latitude, window = wndw)
 ```
 
 
-Basandose en el gráfico de patrones espaciales en el área bajo estudio se puede observar que hay concentraciones en ciertas áreas. Así mismo,en el gráfico de densidad se sugiere la existencia de conglomerados de los volcanes del mundo que han hecho erupciones durante los últimos 10000  años o que presentan actividad actualmente.
+Basandose en el gráfico de patrones espaciales en el área bajo estudio se puede observar que hay concentraciones en ciertas áreas. Así mismo,en el gráfico de densidad se sugiere la existencia de conglomerados de los volcanes de Japón que han hecho erupciones durante los últimos 10000  años o que presentan actividad actualmente.
 
 ```{r}
 plot(spec,main = "Patrones espaciales")
@@ -98,7 +90,7 @@ plot(env,main = "Monte Carlo envelopes con función L")
 grid()
 ```
 
-Seguidamente se evalua el comportamiento de la agrupación de los volcanes respecto a la distancia. Se evidencia que a distancias cortas hay mayor agrupación y como el crecimiento es rápido se puede suponer que hay agrupaciones.
+Al evaluar el comportamiento de la agrupación de los volcanes respecto a la distancia. Se evidencia que a distancias cortas hay mayor agrupación y como el crecimiento es rápido se puede suponer que hay agrupaciones.
 
 ```{r}
 # Cantidad de puntos cercanos segun aumenta el radio
@@ -114,37 +106,56 @@ grid()
 
 ```
 
-Se desea modelar la intensidad utilizando la elevación como covariable.
+Se desea modelar la intensidad para lo cual se utilizó un proceso de poisson no homogeneo (IPP) con una estimación no paramétrica usando kernels.
 
-Se utiliza un proceso de poisson no homogeneo (IPP) con una estimación no paramétrica usando kernels.
+Ajustando el modelo de Poisson con intesidad log-lineal en las coordenadas cartesianas se obtuvo que no predice tan bien la intensidad.
+
+**Modelo:**
+
+lamda((x,y))=exp(-12.15 + 0.062 x + 0.059 y )
+
 
 ```{r}
 # Modelo con solo x y y
 
 fit1 <- ppm(spec, ~ x + y)
+fit1
 plot(fit1, how = "image", se = FALSE, pause = FALSE)
 persp(predict(fit1), theta = 270)
-vcov(fit1)
+
 ```
+
+
+Ahora, ajustando el modelo con una intensidad que es log-cuadratico en las coordenadas cartesianas se obtiene que la predicción de la intensidad mejora.
+
+**Modelo:**
+
+lamda((x,y))=exp(-369.09 + 6.21x - 3.63y - 0.026 x^2 + 0.032 xy - 0.01 x^2)
+
 
 ```{r}
 
 # Modelo con un polinomio de grado 2 con x y y
 
 fit2 <- ppm(spec, ~ polynom(x, y, 2))
+fit2
 plot(fit2, how = "image", se = FALSE, pause = FALSE)
 persp(predict(fit2), theta = 180)
-vcov(fit2)
 ```
+
+
+**Matriz de covariancia de los parametros del modelo log-cuadratico**
 
 ```{r}
-# Modelo con covariable
-
-
+as.data.frame(vcov(fit2))
 ```
 
 
-Anova  para coparar los modelos: El modelo con una intensidad que es log-cuadratico es el mejor al compararlo con el modelo que solo contiene el intercepto.
+
+**Comparar Modelos**
+
+Al comparar el modelo log-cuadrático contra el modelo solo contiene el intercepto se obtuvo que el modelo con una intensidad que es log-cuadratico es el mejor.
+
 ```{r}
 fitnull=update(fit2,~1)
 anova(fitnull,fit2,test="Chi")
@@ -154,7 +165,9 @@ anova(fitnull,fit2,test="Chi")
 
 **conclusiones**
 
-Se probó que los volcanes con erupciones durante los últimos 10,000 años o que muestran actividad actualmente no presentan una distribución espacial aleatoria y se observa una tendencia de agrupaciones de dichos puntos.
+Se probó que los volcanes con erupciones durante los últimos 10,000 años o que muestran actividad actualmente en Japón no presentan una distribución espacial aleatoria y se observa una tendencia de agrupaciones de dichos puntos. 
+
+Además, se modeló la intensidad con un modelo log-cuadratico. 
 
 
 
