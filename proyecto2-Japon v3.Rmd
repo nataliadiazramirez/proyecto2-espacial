@@ -130,7 +130,7 @@ Ahora, ajustando el modelo con una intensidad que es log-cuadratico en las coord
 
 **Modelo:**
 
-lamda((x,y))=exp(-369.09 + 6.21x - 3.63y - 0.026 x^2 + 0.032 xy - 0.01 x^2)
+lamda((x,y))=exp(-369.09 + 6.21x - 3.63y - 0.026 x^2 + 0.032 xy - 0.01 y^2)
 
 
 ```{r}
