@@ -2,11 +2,11 @@
 title: "Proyecto 2 - Ubicaciones de Volcanes en Japón"
 author: "Andrés Arguedas Leiva - Natalia Díaz Ramírez"
 date: "11 Octubre 2018"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE,warning = FALSE,error = FALSE)
+knitr::opts_chunk$set(echo = FALSE,warning = FALSE,error = FALSE, out.width= '5in', fig.align = 'center')
 library(spatstat)
 library(dplyr)
 library(sp)
@@ -31,6 +31,8 @@ En términos del análisis, de la lista de todos los volcanes, se escogieron sol
 # Resultados
 
 En este sección se presenta, primeramente, un análisis descriptivo de los datos mediante mapas con las ubicaciones de los volcanes y gráficos de intensidad. Posteriormente, se hace un análisis sobre la posible existencia de aglomeraciones de datos mediante las funciones L y K, usando varios ajustes por borde y simulaciones. Por último, se estiman dos modelos de procesos puntuales para intentar explicar la ubicación de los volcanes, haciendo pronósticos con base en estos y seleccionando al mejor.
+
+Para empezar, es importante tener una idea sobre la distribución de los datos y la intensidad de la cantidad de volcanes en Japón. Para esto, el Gráfico 1 presenta un mapa de Japón con puntos rojos que representan cada uno de los volcanes, mientras que el Gráfico 2 presenta la intensidad estimada según la locación de los eventos.
 
 ```{r}
 # Cargamos los datos
@@ -59,52 +61,46 @@ pts <- SpatialPoints(lonlat)
 crdef <- CRS('+proj=longlat +datum=WGS84')
 
 pts <- SpatialPoints(lonlat, proj4string = crdef)
-```
 
-Basandose en el gr?fico de patrones espaciales en el ?rea bajo estudio se puede observar que hay concentraciones en ciertas ?reas. As? mismo,en el gr?fico de densidad se sugiere la existencia de conglomerados de los volcanes de Jap?n que han hecho erupciones durante los ?ltimos 10000  a?os o que presentan actividad actualmente.
-
-```{r}
 plot(shp, main = "Grafico 1:\nUbicación de volcanes en Japón")
 points(pts, col = 2, pch = 16, cex = 0.5)
 ```
 
 ```{r}
-plot(density(spec),main="Gr?fico de densidad")
+plot(density(spec),main="Gráfico 2:\nGráfico de densidad de volcanes en Japón")
 plot(shp, add = TRUE)
 ```
 
-Para evaluar las propiedades de segundo orden se tom? en cuenta la funci?n k.
-
+Con base en el Gráfico 1, se puede observar que hay concentraciones en ciertas áreas del territorio, de forma específica sobre las partes noreste de las islas, y un gran conjunto de volcanes que bajan hacia el sureste, de forma lineal. Complementando los resultados del Gráfico 1 con los del Gráfico 2, parece que las intensidades más grandes se encuentran localizadas sobre la parte noreste del mapa, con un foco en la isla al sur y una intensidad moderada sobre las islas al sureste. Por lo tanto, con base en estos dos gráficos, parecen haber indicios que realmente la distribución de los volcanes no es aleatoria, sino que hay ciertas aglomeraciones en secciones específicas. Para lograr ver este fenómeno de algomeración a mayor profundidad, a continuación se presentan las funciones K y L, basados en las propiedades de segundo orden, con el fin de determinar posibles aglomeraciones de datos. Por lo anterior, los Gráficos 3 y 4 presentan la función K y L, respectivamente, en términos teóricas y la obtenido de los datos usando tres ajustes por bordes.
 
 ```{r}
 rip.k <- Kest(spec)
-plot(rip.k,main = "Funci?n k")
+plot(rip.k,main = "Gráfico 3:\nFunción k teórica y con base en los datos")
 grid()
 ```
-
-
-Seguidamente se usa la funci?n L, como correcion de la funci?n k.
 
 ```{r}
 rip.l <- Lest(spec)
-plot(rip.l,main = "Funci?n L")
+plot(rip.l,main = "Gráfico 4:\nFunción L teórica y con base en los datos")
 grid()
-
 ```
 
+Con base en los Gráficos 3 y 4, se puede notar que, como las funciones basadas en los datos de la muestra están por encima de la téorica, entonces hay aglomeraciones en la posición de los volcanes. Para lograr tener una estimación mediante intervalo, en lugar de una puntual, en Gráfico 5 se presenta la función L teórica mediante 999 simulaciones de Monte-Carlo de datos provenientes de una Poisson.
 
-Al comparar la funci?n te?rica con la emp?rica se puede observar que la distribuci?n espacial de los volcanes no se distribuye aleatoriamente.
-
-```{r}
+```{r, include = F}
 # Simulacion de Poissones
 
 set.seed(1) # Establecemos una semilla para reproducibilidad
 env <- envelope(spec, fun = Lest, nsim = 999)
-plot(env,main = "Monte Carlo envelopes con funci?n L")
+```
+
+```{r}
+plot(env, main = "Gráfico 5:\n999 Monte Carlo envelopes con la función L")
 grid()
 ```
 
-Al evaluar el comportamiento de la agrupaci?n de los volcanes respecto a la distancia. Se evidencia que a distancias cortas hay mayor agrupaci?n y como el crecimiento es r?pido se puede suponer que hay agrupaciones.
+
+Al igual que en los Gráficos 3 y 4, el Gráfico 5 nos ayuda a confirmar que realmente hay aglomeraciones en los datos, ya que las funciones estimadas con base en la muestra están fuera de los intervalos de las simulaciones teóricas. En términos de la forma en la cual se dan las agrupaciones, el Gráfico 6 presenta la distancia entre puntos con respecto a la desviación de estos de la distribución teórica. De este gráfico, se evidencia que a distancias cortas hay mayor agrupación y, como el crecimiento es rápido, se puede suponer que hay agrupaciones.
 
 ```{r}
 # Cantidad de puntos cercanos segun aumenta el radio
@@ -113,86 +109,70 @@ l.iso <- rip.l$iso
 l.theo <- rip.l$theo
 l.dev <- l.iso - l.theo
 plot(l.dev ~ rip.l$r, type = "l",
-     ylab = "Desviacion distribuci?n teorica",
+     ylab = "Desviacion distribución teórica",
      xlab = "Distancia",
-     main="Cercan?a de puntos seg?n distancia")
+     main="Gráfico 6:\nCercanía de puntos según distancia")
 grid()
 
 ```
 
-Se desea modelar la intensidad para lo cual se utiliz? un proceso de poisson no homogeneo (IPP) con una estimaci?n no param?trica usando kernels.
-
-Ajustando el modelo de Poisson con intesidad log-lineal en las coordenadas cartesianas se obtuvo que no predice tan bien la intensidad.
+Habiendo determinado que hay agrupaciones en los datos, se desea modelar la intensidad, para lo cual se utilizó un proceso de Poisson no homogéneo (IPP) con una estimación no paramétrica usando kernels. El modelo teórico es el siguiente:
 
 **Modelo:**
 
-lamda((x,y))=exp(-12.15 + 0.062 x + 0.059 y )
+$$\lambda((x,y))=exp(-12.15 + 0.062 x + 0.059 y )$$
 
 
 ```{r}
 # Modelo con solo x y y
 
 fit1 <- ppm(spec, ~ x + y)
-fit1
-plot(fit1, how = "image", se = FALSE, pause = FALSE)
-plot(p, add = T)
-persp(predict(fit1), theta = 270)
-
+knitr::kable(coef(summary(fit1)))
+plot(fit1, how = "image", se = FALSE, pause = FALSE, main = "Gráfico 7:\nEstimación de la intensidad del PPM lineal")
+plot(shp, add = T)
+persp(predict(fit1), theta = 270, main = "Gráfico 8:\nEstimación de la intensidad del PPM lineal en 3D")
 ```
 
-
-Ahora, ajustando el modelo con una intensidad que es log-cuadratico en las coordenadas cartesianas se obtiene que la predicci?n de la intensidad mejora.
+Ajustando el modelo de Poisson con intensidad log-lineal en las coordenadas cartesianas se obtuvo que no predice tan bien la intensidad, ya que, comparandolo con los resultados del Gráfico 2, solo está tomando las agrupaciones en la parte noreste. Ahora, ajustando el modelo con una intensidad que es log-cuadrática en las coordenadas cartesianas se obtiene que la predicción de la intensidad mejora.
 
 **Modelo:**
 
-lamda((x,y))=exp(-369.09 + 6.21x - 3.63y - 0.026 x^2 + 0.032 xy - 0.01 y^2)
-
+$$\lambda((x,y))=exp(-369.09 + 6.21x - 3.63y - 0.026 x^2 + 0.032 xy - 0.01 y^2)$$
 
 ```{r}
 
 # Modelo con un polinomio de grado 2 con x y y
 
 fit2 <- ppm(spec, ~ polynom(x, y, 2))
-fit2
-plot(fit2, how = "image", se = FALSE, pause = FALSE)
-plot(p, add = T)
-persp(predict(fit2), theta = 180)
+knitr::kable(coef(summary(fit2)))
+plot(fit2, how = "image", se = FALSE, pause = FALSE, main = "Gráfico 9:\nEstimación de la intensidad del PPM cuadrático")
+plot(shp, add = T)
+persp(predict(fit2), theta = 180, main = "Gráfico 10:\nEstimación de la intensidad del PPM cuadrático en 3D")
 ```
 
-
-**Matriz de covariancia de los parametros del modelo log-cuadratico**
+Para el caso del modelo Poisson con intensidad log-cuadrática con base en las coordenadas, nos da un resultado parecido al obtenido en la intensidad original, donde en la parte noreste y central del mapa estima mayor intensidad, aunque todavía no estima del todo bien las islas al sureste. Por lo mencionado anteriormente, se decidió usar el modelo de Poisson con intensidad log-cuadrática para modelar la intensidad. A continuación se presenta la matriz de covariancia de los parametros del modelo log-cuadratico:
 
 ```{r}
-as.data.frame(vcov(fit2))
+knitr::kable(as.data.frame(vcov(fit2)))
 ```
 
-
-
-**Comparar Modelos**
-
-Al comparar el modelo log-cuadr?tico contra el modelo solo contiene el intercepto se obtuvo que el modelo con una intensidad que es log-cuadratico es el mejor.
+Por último, al comparar el modelo log-cuadrático contra el modelo que sólo contiene el intercepto, se obtuvo que el modelo con una intensidad que es log-cuadratico es el mejor.
 
 ```{r}
 fitnull=update(fit2,~1)
 anova(fitnull,fit2,test="Chi")
 ```
 
+# Conclusiones
 
+Como primera conclusión, es importante resaltar que se probó que los volcanes con erupciones durante los últimos 10.000 años en Japón no presentan una distribución espacial aleatoria y se observa una tendencia de agrupaciones de dichos puntos. Esto significa que hay un efecto de atracción entre los volcanes, donde se espera encontrar más volcanes cerca de volcanes que ya existen. Por otro lado, se logró modelar la intensidad de los volcanes mediante un modelo de Poisson no homogéneo con intensidad log-cuadrática, que tuvo mejores predicciones que el modelo con solo las coordenadas y logró predecir la intensidad de forma bastante buena.
 
-**conclusiones**
+#Referencias
 
-Se prob? que los volcanes con erupciones durante los ?ltimos 10,000 a?os o que muestran actividad actualmente en Jap?n no presentan una distribuci?n espacial aleatoria y se observa una tendencia de agrupaciones de dichos puntos. 
+- https://www.kaggle.com/smithsonian/volcanic-eruptions
 
-Adem?s, se model? la intensidad con un modelo log-cuadratico. 
+- https://gadm.org
 
-
-
-
-**Referencias**
-
-[](https://www.kaggle.com/smithsonian/volcanic-eruptions)
-
-
-
+- https://volcano.si.edu
 
 
