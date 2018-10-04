@@ -1,140 +1,121 @@
 ---
-title: "Proyecto 2 - Procesos Puntuales"
-author: "Andres Arguedas-Natalia Díaz Ramírez"
-date: "October 2, 2018"
+title: "Proyecto 2 - Volcanes del mundo"
+author: "Andres Arguedas Leiva - Natalia Díaz Ramírez"
+date: "11 Octubre 2018"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE,warning = FALSE,error = FALSE)
 library(spatstat)
 
 ```
 
 
-###** **
+
+**Descripción de los datos**
+
+Los datos se obtuvieron de Global Volcanism Program (GVP) del Instituto Smithsoniano,los cuales hacen referencia a ubicaciones de los volcanes de la Tierra y su historia eruptiva en los últimos 10,000 años. El GVP informa sobre las erupciones actuales de todo el mundo y mantiene un repositorio de bases de datos sobre volcanes activos y sus erupciones. 
+
+La base de datos incluye los nombres, ubicaciones, tipos y características de 1,508 volcanes con erupciones durante los últimos 10,000 años o que muestran actividad actualmente. Entre las variables a conciderar se tomaron la latitud, longitud y elevación (metros).
 
 
-**Introducción**
+El objetivo del presente escrito consiste en determinar si existen agrupaciones y examinar la asociación con la elevación en la ubicación de los volcanes del mundo. Para lo cual se pretende contestar las siguientes preguntas:
 
-Global Volcanism Program (GVP) del Instituto Smithsoniano documenta los volcanes de la Tierra y su historia eruptiva en los últimos 10,000 años. El GVP informa sobre las erupciones actuales de todo el mundo y mantiene un repositorio de bases de datos sobre volcanes activos y sus erupciones. 
+- Los eventos estan distribuidos aleatoriamente o existe evidencia de agrupaciones en la región de estudio?
 
-La base de datos incluye los nombres, ubicaciones, tipos y características de más de 1,500 volcanes con erupciones durante el período del Holoceno (aproximadamente los últimos 10,000 años) o que muestran disturbios actuales.
-
-Variables:
-
-
-- Nombre
-
-- País
-
-- Región
-
-- Tipo
-
-- Evidencia de Actividad
-
-- Ultima erupción
-
-- Latitud
-
-- Longitud
-
-- Elevacion (Metros)
-
--Tipo de roca dominandte
-
-Ambiente tectónico
-
+- Hay asociación con la elevación?
 
 
 
 **Metodología**
 
+Se desarrolló un analisis de procesos puntuales, ya que la ubicaciòn de cada volcan representa las coordenadas del evento...
+
+
+
 **Resultados**
 
-*hay quenocultar el chunck para que solo muestre los resultados
 
 ```{r}
 # Cargamos los datos
 database <- read.csv("database.csv")
 
 # Especificamos la region
-
 # database <- database[database$Region == "MÃƒÂ©xico and Central America", ]
 
 # Definimos la ventana
-
 wndw <- owin(x = c(min(database$Longitude), max(database$Longitude)),
              y = c(min(database$Latitude), max(database$Latitude)))
 
 # Hacemos el objeto ppp
 
 spec <- ppp(x = database$Longitude, database$Latitude, window = wndw)
-
-
 ```
 
-Gráfico de patrones espaciales en el area bajo estudio
+
+Basandose en el gráfico de patrones espaciales en el área bajo estudio se puede observar que hay concentraciones en ciertas áreas. Así mismo,en el gráfico de densidad se sugiere la existencia de conglomerados de los volcanes del mundo que han hecho erupciones durante los últimos 10000  años o que presentan actividad actualmente.
 
 ```{r}
-plot(spec)
+plot(spec,main = "Patrones espaciales")
 ```
 
 
- Gráfico de Densidad
  
 ```{r}
-plot(density(spec))
+plot(density(spec),main="Gráfico de densidad")
 ```
 
-Propiedades de segundo orden
-
-
--Función K
+Para evaluar las propiedades de segundo orden se tomó en cuenta la función k.
 
 
 ```{r}
 rip.k <- Kest(spec)
-plot(rip.k)
+plot(rip.k,main = "Función k")
+grid()
 ```
 
 
-- Correcion de la función k
-
-Funcion L
+Seguidamente se usa la función L, como correcion de la función k.
 
 ```{r}
 rip.l <- Lest(spec)
-plot(rip.l)
+plot(rip.l,main = "Función L")
+grid()
 
 ```
 
 
-
-
+Al comparar la función teórica con la empírica se puede observar que la distribución espacial de los volcanes no se distribuye aleatoriamente.
 
 ```{r}
-# SimulaciÃ³n de Poissones
+# Simulacion de Poissones
 
 set.seed(1) # Establecemos una semilla para reproducibilidad
 env <- envelope(spec, fun = Lest, nsim = 999)
-plot(env)
+plot(env,main = "Monte Carlo envelopes con función L")
+grid()
 ```
 
+Seguidamente se evalua el comportamiento de la agrupación de los volcanes respecto a la distancia. Se evidencia que a distancias cortas hay mayor agrupación y como el crecimiento es rápido se puede suponer que hay agrupaciones.
+
 ```{r}
-# Cantidad de puntos cercanos segÃºn aumenta el radio
+# Cantidad de puntos cercanos segun aumenta el radio
 
 l.iso <- rip.l$iso
 l.theo <- rip.l$theo
 l.dev <- l.iso - l.theo
 plot(l.dev ~ rip.l$r, type = "l",
      ylab = "Desviacion distribución teorica",
-     xlab = "Distancia")
+     xlab = "Distancia",
+     main="Cercanía de puntos según distancia")
+grid()
 
 ```
 
+Se desea modelar la intensidad utilizando la elevación como covariable.
 
+Se utiliza un proceso de poisson no homogeneo (IPP) con una estimación no paramétrica usando kernels.
 
 ```{r}
 # Modelo con solo x y y
@@ -154,6 +135,16 @@ plot(fit2, how = "image", se = FALSE, pause = FALSE)
 persp(predict(fit2), theta = 180)
 
 ```
+
+```{r}
+# Modelo con covariable
+# elev=
+# 
+# fit3 <- ppm(spec, ~ )
+
+```
+
+
 
 
 **conclusiones**
