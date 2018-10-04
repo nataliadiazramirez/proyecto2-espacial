@@ -138,9 +138,7 @@ vcov(fit2)
 
 ```{r}
 # Modelo con covariable
-# elev=
-# 
-# fit3 <- ppm(spec, ~ ,)
+
 
 ```
 
